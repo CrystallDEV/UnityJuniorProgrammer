@@ -1,8 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+using Assets.Scripts;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class MainManager : MonoBehaviour
 {
@@ -12,25 +13,32 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
-    
-    private bool m_Started = false;
-    private int m_Points;
-    
-    private bool m_GameOver = false;
+    public Text HighScoreText;
+    public GameObject NewHighScoreText;
 
-    
-    // Start is called before the first frame update
-    void Start()
+
+    private bool m_Started;
+    private int m_Points;
+    private bool m_GameOver;
+
+    private void Start()
+    {
+        InitBricks();
+        var gameData = GameDataManager.Instance.GameData;
+        UpdateHighScoreText(gameData.userName, gameData.score);
+    }
+
+    private void InitBricks()
     {
         const float step = 0.6f;
-        int perLine = Mathf.FloorToInt(4.0f / step);
-        
-        int[] pointCountArray = new [] {1,1,2,2,5,5};
-        for (int i = 0; i < LineCount; ++i)
+        var perLine = Mathf.FloorToInt(4.0f / step);
+
+        int[] pointCountArray = { 1, 1, 2, 2, 5, 5 };
+        for (var i = 0; i < LineCount; ++i)
         {
-            for (int x = 0; x < perLine; ++x)
+            for (var x = 0; x < perLine; ++x)
             {
-                Vector3 position = new Vector3(-1.5f + step * x, 2.5f + i * 0.3f, 0);
+                var position = new Vector3(-1.5f + step * x, 2.5f + i * 0.3f, 0);
                 var brick = Instantiate(BrickPrefab, position, Quaternion.identity);
                 brick.PointValue = pointCountArray[i];
                 brick.onDestroyed.AddListener(AddPoint);
@@ -45,8 +53,8 @@ public class MainManager : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 m_Started = true;
-                float randomDirection = Random.Range(-1.0f, 1.0f);
-                Vector3 forceDir = new Vector3(randomDirection, 1, 0);
+                var randomDirection = Random.Range(-1.0f, 1.0f);
+                var forceDir = new Vector3(randomDirection, 1, 0);
                 forceDir.Normalize();
 
                 Ball.transform.SetParent(null);
@@ -71,6 +79,28 @@ public class MainManager : MonoBehaviour
     public void GameOver()
     {
         m_GameOver = true;
-        GameOverText.SetActive(true);
+        if (m_Points > GameDataManager.Instance.GameData.score)
+        {
+            NewHighScoreText.SetActive(true);
+        }
+        else
+        {
+            GameOverText.SetActive(true);
+        }
+    }
+
+    public void SaveHighScore(String userName)
+    {
+        GameDataManager.Instance.GameData.userName = userName;
+        GameDataManager.Instance.GameData.score = m_Points;
+        NewHighScoreText.SetActive(false);
+        UpdateHighScoreText(userName, m_Points);
+        // save new highscore to file
+        GameDataManager.Instance.SaveGameData();
+    }
+
+    public void UpdateHighScoreText(String userName, int score)
+    {
+        HighScoreText.text = $"Best Score : {userName} : {score}";
     }
 }
